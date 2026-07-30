@@ -94,32 +94,31 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Cria um objeto Pedido para enviar na atualização
-    // O backend irá receber isto e o PedidoService irá atualizar o status
+    // Cria um objeto limpo para atualização do status
     const pedidoParaAtualizar: any = {
-      ...pedido, // Envia o pedido todo
-      status: novoStatus // garante que o status novo está definido
+      id: pedido.id,
+      status: novoStatus
     };
 
-    this.pedidoService.update(pedidoParaAtualizar).subscribe(
-      () => {
+    this.pedidoService.update(pedidoParaAtualizar).subscribe({
+      next: () => {
         pedido.status = novoStatus;
         // Se o status for 'ENTREGUE' ou 'CANCELADO', remove da fila após 15s
         if (novoStatus === this.statusPedido.ENTREGUE || novoStatus === this.statusPedido.CANCELADO) {
-          Swal.fire('Atualizado!', `Pedido ${pedido.id} marcado como ${novoStatus}.`, 'success');
+          Swal.fire('Atualizado!', `Pedido #${pedido.id} marcado como ${novoStatus}.`, 'success');
           setTimeout(() => {
             this.pedidos = this.pedidos.filter(p => p.id !== pedido.id);
           }, 15000);
         } else {
-          Swal.fire('Atualizado!', `Status do pedido ${pedido.id} atualizado.`, 'success');
+          Swal.fire('Atualizado!', `Status do pedido #${pedido.id} atualizado.`, 'success');
         }
       },
-      (error) => {
+      error: (error) => {
         Swal.fire('Erro', 'Não foi possível atualizar o status do pedido.', 'error');
         console.error('Erro ao atualizar status', error);
         // Recarrega os pedidos em caso de erro para re-sincronizar
         this.carregarPedidos();
       }
-    );
+    });
   }
 }
