@@ -42,6 +42,14 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
   private pedidoService = inject(PedidoService);
   private refreshSubscription!: Subscription;
 
+  private allowedTransitions: { [key: string]: string[] } = {
+    'FILA': ['PREPARANDO', 'CANCELADO'],
+    'PREPARANDO': ['FINALIZADO'],
+    'FINALIZADO': ['ENTREGUE'],
+    'ENTREGUE': [],
+    'CANCELADO': []
+  };
+
   ngOnInit(): void {
     this.carregarPedidos();
     // Atualiza a lista a cada 30 segundos
@@ -85,12 +93,17 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
     return (agora - dataCancelamento) < tresMinutos;
   }
 
-  atualizarStatus(pedido: PedidoResponseDTO, novoStatus: string): void {
-    // Garante que o novoStatus é valido
-    const statusValido = Object.values(this.statusPedido).includes(novoStatus as StatusPedidoEnum);
+  private obterProximosStatusPermitidos(currentStatus: string): string[] {
+    return this.allowedTransitions[currentStatus] || [];
+  }
 
-    if (!statusValido) {
-      Swal.fire('Erro', 'Status inválido selecionado.', 'error');
+  transicaoPermitida(currentStatus: string, targetStatus: string): boolean {
+    return this.obterProximosStatusPermitidos(currentStatus).includes(targetStatus);
+  }
+
+  atualizarStatus(pedido: PedidoResponseDTO, novoStatus: string): void {
+    if (!this.transicaoPermitida(pedido.status, novoStatus)) {
+      Swal.fire('Erro', 'Transição de status não permitida.', 'error');
       return;
     }
 
@@ -116,8 +129,22 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
       error: (error) => {
         Swal.fire('Erro', 'Não foi possível atualizar o status do pedido.', 'error');
         console.error('Erro ao atualizar status', error);
-        // Recarrega os pedidos em caso de erro para re-sincronizar
         this.carregarPedidos();
+      }
+    });
+  }
+
+  cancelarPedido(pedido: PedidoResponseDTO): void {
+    Swal.fire({
+      title: 'Cancelar pedido?',
+      text: `Tem certeza que deseja cancelar o pedido #${pedido.id}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, cancelar',
+      cancelButtonText: 'Voltar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.atualizarStatus(pedido, 'CANCELADO');
       }
     });
   }

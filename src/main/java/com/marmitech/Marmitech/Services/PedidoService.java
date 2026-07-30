@@ -2,6 +2,8 @@ package com.marmitech.Marmitech.Services;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,14 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PedidoService {
+
+    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
+        "FILA", Set.of("PREPARANDO", "CANCELADO"),
+        "PREPARANDO", Set.of("FINALIZADO"),
+        "FINALIZADO", Set.of("ENTREGUE"),
+        "ENTREGUE", Set.of(),
+        "CANCELADO", Set.of()
+    );
     @Autowired
     private PedidoRepository pedidoRepository;
 
@@ -47,6 +57,10 @@ public class PedidoService {
 
             item.setProduto( produto );
             item.setPedido( pedido );
+            if (item.getPrecoUnitarioPedido() == null) {
+                item.setPrecoUnitarioPedido( produto.getPrecoUnitario() );
+            }
+            item.setSubtotal( item.getQuantidade() * item.getPrecoUnitarioPedido() );
         }
 
         if (pedido.getCliente() != null && pedido.getCliente().getId() > 0) {
@@ -96,7 +110,15 @@ public class PedidoService {
             pedidoUpdate.setValorTotal( pedido.getValorTotal() );
         }
         if (pedido.getStatus() != null && !pedido.getStatus().isBlank()) {
-            pedidoUpdate.setStatus( pedido.getStatus() );
+            String currentStatus = pedidoUpdate.getStatus();
+            String newStatus = pedido.getStatus();
+            Set<String> allowed = ALLOWED_TRANSITIONS.get(currentStatus);
+            if (allowed == null || !allowed.contains(newStatus)) {
+                throw new IllegalArgumentException(
+                    "Transição inválida: " + currentStatus + " → " + newStatus
+                );
+            }
+            pedidoUpdate.setStatus( newStatus );
         }
         if (pedido.getEnderecoEntrega() != null && !pedido.getEnderecoEntrega().isBlank()) {
             pedidoUpdate.setEnderecoEntrega( pedido.getEnderecoEntrega() );
