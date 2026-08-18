@@ -11,7 +11,7 @@
     <groupId>com.marmitech</groupId>
     <artifactId>Marmitech</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
     <name>Marmitech</name>
     <description>Projeto 4 periodo UniAmerica - Marmitech</description>
     <url/>

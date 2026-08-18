@@ -1,0 +1,70 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require 'socket'
+
+# Função para testar se uma porta do host está livre
+def port_open?(ip, port)
+  begin
+    server = TCPServer.new(ip, port)
+    server.close
+    true
+  rescue Errno::EADDRINUSE, Errno::EACCES
+    false
+  end
+end
+
+# Encontra a primeira instância caso as portas estiverem livres
+selected_instance = 1
+(1..10).each do |i|
+  b_port = 8080 + (i - 1)
+  f_port = 4200 + (i - 1)
+  s_port = 2222 + (i - 1)
+
+  if port_open?('127.0.0.1', b_port) && port_open?('127.0.0.1', f_port) && port_open?('127.0.0.1', s_port)
+    selected_instance = i
+    break
+  end
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"
+
+  (1..10).each do |i|
+    # Apenas a instância detectada como livre terá autostart ativado
+    is_active = (i == selected_instance)
+
+    config.vm.define "instancia-#{i}", autostart: is_active do |node|
+      backend_port  = 8080 + (i - 1)
+      frontend_port = 4200 + (i - 1)
+      ssh_port      = 2222 + (i - 1)
+
+      node.vm.hostname = "marmitech-#{i}"
+
+      node.vm.network "forwarded_port", guest: 8080, host: backend_port,  auto_correct: true, id: "backend"
+      node.vm.network "forwarded_port", guest: 4200, host: frontend_port, auto_correct: true, id: "frontend"
+      node.vm.network "forwarded_port", guest: 22,   host: ssh_port,      auto_correct: true, id: "ssh"
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.name   = "Marmitech-VM-#{i}"
+        vb.memory = 2048
+        vb.cpus   = 2
+        vb.gui    = false
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnsproxy1",        "on"]
+      end
+
+      node.vm.synced_folder "..", "/vagrant_src", type: "virtualbox"
+      node.ssh.insert_key = true
+
+      node.vm.provision "ansible" do |ansible|
+        ansible.playbook       = "playbook.yml"
+        ansible.verbose        = false
+        ansible.compatibility_mode = "2.0"
+        ansible.extra_vars = {
+          ansible_python_interpreter: "/usr/bin/python3"
+        }
+      end
+    end
+  end
+end

@@ -1,0 +1,1 @@
+{"virtualbox":{"/vagrant_src":{"type":"virtualbox","guestpath":"/vagrant_src","hostpath":"/home/marina/Documentos/6-periodo/projeto-integrador/projeto-mensal6","disabled":false,"__vagrantfile":true},"/vagrant":{"guestpath":"/vagrant","hostpath":"/home/marina/Documentos/6-periodo/projeto-integrador/projeto-mensal6/marmitech-infra","disabled":false,"__vagrantfile":true}}}
