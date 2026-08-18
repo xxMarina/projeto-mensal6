@@ -2,6 +2,8 @@ package com.marmitech.Marmitech.Services;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,14 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PedidoService {
+
+    private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
+        "FILA", Set.of("PREPARANDO", "CANCELADO"),
+        "PREPARANDO", Set.of("FINALIZADO"),
+        "FINALIZADO", Set.of("ENTREGUE"),
+        "ENTREGUE", Set.of(),
+        "CANCELADO", Set.of()
+    );
     @Autowired
     private PedidoRepository pedidoRepository;
 
@@ -47,6 +57,10 @@ public class PedidoService {
 
             item.setProduto( produto );
             item.setPedido( pedido );
+            if (item.getPrecoUnitarioPedido() == null) {
+                item.setPrecoUnitarioPedido( produto.getPrecoUnitario() );
+            }
+            item.setSubtotal( item.getQuantidade() * item.getPrecoUnitarioPedido() );
         }
 
         if (pedido.getCliente() != null && pedido.getCliente().getId() > 0) {
@@ -92,12 +106,32 @@ public class PedidoService {
     @Transactional
     public Pedido update(Integer id, Pedido pedido) {
         Pedido pedidoUpdate = findById( id );
-        pedidoUpdate.setValorTotal( pedido.getValorTotal() );
-        pedidoUpdate.setStatus( pedido.getStatus() );
-        pedidoUpdate.setEnderecoEntrega( pedido.getEnderecoEntrega() );
-        pedidoUpdate.setUsuario( pedido.getUsuario() );
-        pedidoUpdate.setCliente( pedido.getCliente() );
-        pedidoUpdate.setPedidoItems( pedido.getPedidoItems() );
+        if (pedido.getValorTotal() != null) {
+            pedidoUpdate.setValorTotal( pedido.getValorTotal() );
+        }
+        if (pedido.getStatus() != null && !pedido.getStatus().isBlank()) {
+            String currentStatus = pedidoUpdate.getStatus();
+            String newStatus = pedido.getStatus();
+            Set<String> allowed = ALLOWED_TRANSITIONS.get(currentStatus);
+            if (allowed == null || !allowed.contains(newStatus)) {
+                throw new IllegalArgumentException(
+                    "Transição inválida: " + currentStatus + " → " + newStatus
+                );
+            }
+            pedidoUpdate.setStatus( newStatus );
+        }
+        if (pedido.getEnderecoEntrega() != null && !pedido.getEnderecoEntrega().isBlank()) {
+            pedidoUpdate.setEnderecoEntrega( pedido.getEnderecoEntrega() );
+        }
+        if (pedido.getUsuario() != null) {
+            pedidoUpdate.setUsuario( pedido.getUsuario() );
+        }
+        if (pedido.getCliente() != null) {
+            pedidoUpdate.setCliente( pedido.getCliente() );
+        }
+        if (pedido.getPedidoItems() != null && !pedido.getPedidoItems().isEmpty()) {
+            pedidoUpdate.setPedidoItems( pedido.getPedidoItems() );
+        }
         return pedidoRepository.save( pedidoUpdate );
     }
 

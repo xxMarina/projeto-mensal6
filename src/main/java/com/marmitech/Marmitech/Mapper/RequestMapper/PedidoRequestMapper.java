@@ -1,7 +1,10 @@
 package com.marmitech.Marmitech.Mapper.RequestMapper;
 
 import com.marmitech.Marmitech.DTO.RequestDTO.PedidoRequestDTO;
-import com.marmitech.Marmitech.Entity.*;
+import com.marmitech.Marmitech.Entity.Cliente;
+import com.marmitech.Marmitech.Entity.Pedido;
+import com.marmitech.Marmitech.Entity.PedidoItem;
+import com.marmitech.Marmitech.Entity.Produto;
 
 public class PedidoRequestMapper {
 
