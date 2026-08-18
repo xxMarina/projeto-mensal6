@@ -1,0 +1,23 @@
+# =============================================================
+#  Serviço systemd Frontend Marmitech (Angular build estático)
+#  Usa o `serve` (npx serve) para servir os arquivos do dist/.
+# =============================================================
+
+[Unit]
+Description=Marmitech Frontend (Angular Static)
+After=network.target marmitech-backend.service
+
+[Service]
+Type=simple
+User=marmitech
+WorkingDirectory={{ frontend_dir }}
+ExecStart=/usr/bin/npx serve -s dist/marmitech-web/browser -l {{ frontend_port }} --no-clipboard
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=marmitech-frontend
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

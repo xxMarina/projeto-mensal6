@@ -29,7 +29,7 @@ export class LoginComponent {
 
     this.authService.fazerLogin(this.loginData.email, this.loginData.senha).subscribe({
       next: (res) => {
-        localStorage.setItem('user', this.loginData.email);
+        localStorage.setItem('user', JSON.stringify(res));
         localStorage.setItem('token', 'session_token_' + Date.now());
         Swal.fire({
           title: 'Bem-vindo!',

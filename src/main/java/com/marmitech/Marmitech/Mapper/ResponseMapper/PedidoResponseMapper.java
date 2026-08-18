@@ -18,7 +18,7 @@ public class PedidoResponseMapper {
                 pedidoItem.getProduto().getNome(),
                 pedidoItem.getQuantidade(),
                 pedidoItem.getPrecoUnitarioPedido(),
-                pedidoItem.getPrecoUnitarioPedido());
+                pedidoItem.getSubtotal());
     }
 
     public static PedidoResponseDTO toDto(Pedido pedido){

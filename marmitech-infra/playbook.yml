@@ -1,0 +1,419 @@
+---
+# =============================================================
+#  Marmitech – Playbook de Provisionamento
+#  Roda DENTRO da VM via Vagrant+Ansible.
+#  Idempotente: pode ser executado múltiplas vezes sem erro.
+# =============================================================
+- name: Provisionamento completo do Marmitech
+  hosts: all
+  become: true
+  gather_facts: true
+
+  # Variáveis já carregadas de group_vars/all.yml
+  # Templates ficam em templates/
+
+  tasks:
+
+    # =========================================================
+    # BLOCO 1 – SISTEMA BASE
+    # =========================================================
+
+    - name: Atualizar cache de pacotes apt
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600   # não atualiza se cache < 1h
+
+    - name: Instalar pacotes essenciais
+      ansible.builtin.apt:
+        name:
+          - curl
+          - wget
+          - git
+          - unzip
+          - gnupg
+          - ca-certificates
+          - lsb-release
+          - software-properties-common
+        state: present
+
+    # =========================================================
+    # BLOCO 2 – JAVA (JDK {{ java_version }})
+    # =========================================================
+
+    - name: Verificar se Java {{ java_version }} já está instalado
+      ansible.builtin.command: java -version
+      register: java_check
+      changed_when: false
+      failed_when: false
+
+    - name: Instalar OpenJDK {{ java_version }}
+      ansible.builtin.apt:
+        name: "openjdk-{{ java_version }}-jdk"
+        state: present
+      when: java_check.rc != 0
+
+    - name: Definir JAVA_HOME no ambiente global
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: '^JAVA_HOME='
+        line: "JAVA_HOME=/usr/lib/jvm/java-{{ java_version }}-openjdk-amd64"
+        create: true
+
+    # =========================================================
+    # BLOCO 3 – MAVEN
+    # =========================================================
+
+    - name: Verificar se Maven já está instalado
+      ansible.builtin.stat:
+        path: "/opt/maven/bin/mvn"
+      register: maven_stat
+
+    - name: Baixar Maven {{ maven_version }}
+      ansible.builtin.get_url:
+        url: "https://archive.apache.org/dist/maven/maven-3/{{ maven_version }}/binaries/apache-maven-{{ maven_version }}-bin.tar.gz"
+        dest: "/tmp/maven.tar.gz"
+        mode: '0644'
+      when: not maven_stat.stat.exists
+
+    - name: Extrair Maven para /opt/maven
+      ansible.builtin.unarchive:
+        src: "/tmp/maven.tar.gz"
+        dest: "/opt/"
+        remote_src: true
+        creates: "/opt/apache-maven-{{ maven_version }}"
+      when: not maven_stat.stat.exists
+
+    - name: Criar link simbólico /opt/maven
+      ansible.builtin.file:
+        src: "/opt/apache-maven-{{ maven_version }}"
+        dest: "/opt/maven"
+        state: link
+      when: not maven_stat.stat.exists
+
+    - name: Adicionar Maven ao PATH global
+      ansible.builtin.copy:
+        dest: /etc/profile.d/maven.sh
+        content: |
+          export M2_HOME=/opt/maven
+          export PATH=$M2_HOME/bin:$PATH
+        mode: '0644'
+
+    # =========================================================
+    # BLOCO 4 – NODE.JS {{ node_version }} (via NodeSource)
+    # =========================================================
+
+    - name: Verificar se Node.js já está instalado
+      ansible.builtin.stat:
+        path: /usr/bin/node
+      register: node_stat
+
+    - name: Adicionar repositório NodeSource para Node {{ node_version }}
+      ansible.builtin.shell: |
+        curl -fsSL https://deb.nodesource.com/setup_{{ node_version }}.x | bash -
+      when: not node_stat.stat.exists
+      changed_when: true
+
+    - name: Instalar Node.js
+      ansible.builtin.apt:
+        name: nodejs
+        state: present
+      when: not node_stat.stat.exists
+
+    - name: Instalar Angular CLI e serve globalmente
+      community.general.npm:
+        name: "{{ item }}"
+        global: true
+        state: present
+      loop:
+        - "@angular/cli"
+        - serve
+
+    # =========================================================
+    # BLOCO 5 – MYSQL
+    # =========================================================
+
+    - name: Instalar MySQL Server
+      ansible.builtin.apt:
+        name:
+          - mysql-server
+          - python3-mysqldb   # módulo Python para Ansible gerenciar MySQL
+        state: present
+
+    - name: Garantir que o MySQL está iniciado e habilitado
+      ansible.builtin.service:
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Definir senha do root do MySQL
+      community.mysql.mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: root
+        password: "{{ db_root_password }}"
+        host: localhost
+        priv: "*.*:ALL,GRANT"
+        state: present
+      no_log: true
+      ignore_errors: true
+
+    - name: Criar banco de dados {{ db_name }}
+      community.mysql.mysql_db:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_user: root
+        login_password: "{{ db_root_password }}"
+        name: "{{ db_name }}"
+        state: present
+        encoding: utf8mb4
+        collation: utf8mb4_unicode_ci
+      register: db_create
+      ignore_errors: true
+
+    - name: Fallback - Criar banco de dados {{ db_name }} sem senha root (auth_socket)
+      community.mysql.mysql_db:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: "{{ db_name }}"
+        state: present
+        encoding: utf8mb4
+        collation: utf8mb4_unicode_ci
+      when: db_create is failed
+
+    - name: Criar usuário MySQL {{ db_user }}
+      community.mysql.mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_user: root
+        login_password: "{{ db_root_password }}"
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        host: localhost
+        state: present
+      no_log: true
+      register: user_create
+      ignore_errors: true
+
+    - name: Fallback - Criar usuário MySQL {{ db_user }} sem senha root (auth_socket)
+      community.mysql.mysql_user:
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        host: localhost
+        state: present
+      no_log: true
+      when: user_create is failed
+
+    # =========================================================
+    # BLOCO 6 – USUÁRIO DE SISTEMA E DIRETÓRIOS
+    # =========================================================
+
+    - name: Criar usuário de sistema 'marmitech'
+      ansible.builtin.user:
+        name: marmitech
+        system: true
+        shell: /bin/false
+        create_home: false
+        state: present
+
+    - name: Criar diretórios da aplicação
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: marmitech
+        group: marmitech
+        mode: '0755'
+      loop:
+        - "{{ app_dir }}"
+        - "{{ backend_dir }}"
+        - "{{ frontend_dir }}"
+
+    # =========================================================
+    # BLOCO 7 – BUILD E DEPLOY DO BACKEND (Spring Boot)
+    # =========================================================
+
+    - name: Gerar application.properties a partir do template
+      ansible.builtin.template:
+        src: templates/application.properties.j2
+        dest: "{{ src_root }}/src/main/resources/application.properties"
+        mode: '0644'
+
+    - name: Compilar o backend com Maven (dentro da VM)
+      ansible.builtin.shell: |
+        export M2_HOME=/opt/maven
+        export PATH=$M2_HOME/bin:$PATH
+        export JAVA_HOME=/usr/lib/jvm/java-{{ java_version }}-openjdk-amd64
+        mvn clean package -DskipTests -q
+      args:
+        chdir: "{{ src_root }}"
+      register: maven_result
+      changed_when: true
+
+    - name: Localizar o .jar gerado
+      ansible.builtin.find:
+        paths: "{{ src_root }}/target"
+        patterns: "*.jar"
+        excludes: "*-sources.jar,*-javadoc.jar"
+        recurse: true
+      register: jar_files
+
+    - name: Falhar se nenhum .jar foi encontrado
+      ansible.builtin.fail:
+        msg: "Build Maven falhou — nenhum .jar encontrado em {{ src_root }}/target"
+      when: jar_files.matched == 0
+
+    - name: Copiar .jar para {{ backend_dir }}/app.jar
+      ansible.builtin.copy:
+        src: "{{ jar_files.files[0].path }}"
+        dest: "{{ backend_dir }}/app.jar"
+        owner: marmitech
+        group: marmitech
+        mode: '0644'
+        remote_src: true
+
+    # =========================================================
+    # BLOCO 8 – BUILD E DEPLOY DO FRONTEND (Angular)
+    # =========================================================
+
+    - name: Instalar dependências npm do frontend
+      ansible.builtin.shell: |
+        npm install --legacy-peer-deps
+      args:
+        chdir: "{{ src_root }}/marmitech-web"
+      changed_when: false
+
+    - name: Build de produção do Angular
+      ansible.builtin.shell: |
+        npx ng build --configuration production
+      args:
+        chdir: "{{ src_root }}/marmitech-web"
+      environment:
+        NODE_OPTIONS: "--max-old-space-size=2048"
+      changed_when: true
+
+    - name: Localizar pasta dist gerada pelo Angular
+      ansible.builtin.find:
+        paths: "{{ src_root }}/marmitech-web/dist"
+        file_type: directory
+        recurse: false
+      register: dist_dirs
+
+    - name: Falhar se o build Angular não gerou dist/
+      ansible.builtin.fail:
+        msg: "Build Angular falhou — pasta dist/ não encontrada."
+      when: dist_dirs.matched == 0
+
+    - name: Sincronizar dist/ para {{ frontend_dir }}/dist/
+      ansible.builtin.synchronize:
+        src: "{{ src_root }}/marmitech-web/dist/"
+        dest: "{{ frontend_dir }}/dist/"
+        delete: true
+        recursive: true
+      delegate_to: "{{ inventory_hostname }}"
+
+    - name: Garantir que package.json existe em {{ frontend_dir }} (para npx serve)
+      ansible.builtin.copy:
+        dest: "{{ frontend_dir }}/package.json"
+        content: |
+          {
+            "name": "marmitech-frontend-serve",
+            "version": "1.0.0",
+            "dependencies": {
+              "serve": "^14.0.0"
+            }
+          }
+        owner: marmitech
+        group: marmitech
+        mode: '0644'
+
+    - name: Instalar `serve` local em {{ frontend_dir }}
+      community.general.npm:
+        path: "{{ frontend_dir }}"
+        state: present
+
+    - name: Ajustar dono de todos os arquivos da app
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        owner: marmitech
+        group: marmitech
+        recurse: true
+
+    # =========================================================
+    # BLOCO 9 – SERVIÇOS SYSTEMD
+    # =========================================================
+
+    - name: Instalar unit do backend no systemd
+      ansible.builtin.template:
+        src: templates/marmitech-backend.service.j2
+        dest: /etc/systemd/system/marmitech-backend.service
+        mode: '0644'
+      notify: Recarregar systemd
+
+    - name: Instalar unit do frontend no systemd
+      ansible.builtin.template:
+        src: templates/marmitech-frontend.service.j2
+        dest: /etc/systemd/system/marmitech-frontend.service
+        mode: '0644'
+      notify: Recarregar systemd
+
+    - name: Forçar reload do systemd agora (caso não tenha sido notificado)
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Habilitar e iniciar o serviço do backend
+      ansible.builtin.systemd:
+        name: marmitech-backend
+        enabled: true
+        state: restarted
+
+    - name: Aguardar backend responder na porta {{ backend_port }}
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ backend_port }}"
+        delay: 5
+        timeout: 120
+        state: started
+      register: backend_wait
+      failed_when: backend_wait.elapsed >= 120
+
+    - name: Habilitar e iniciar o serviço do frontend
+      ansible.builtin.systemd:
+        name: marmitech-frontend
+        enabled: true
+        state: restarted
+
+    - name: Aguardar frontend responder na porta {{ frontend_port }}
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ frontend_port }}"
+        delay: 3
+        timeout: 60
+        state: started
+
+    # =========================================================
+    # BLOCO 10 – VERIFICAÇÃO FINAL
+    # =========================================================
+
+    - name: Checar status do backend
+      ansible.builtin.command: systemctl is-active marmitech-backend
+      register: backend_status
+      changed_when: false
+
+    - name: Checar status do frontend
+      ansible.builtin.command: systemctl is-active marmitech-frontend
+      register: frontend_status
+      changed_when: false
+
+    - name: Exibir resultado final
+      ansible.builtin.debug:
+        msg:
+          - "======================================================"
+          - " MARMITECH provisionado com sucesso!"
+          - " Backend  ({{ backend_status.stdout }}): http://localhost:{{ backend_port }}"
+          - " Frontend ({{ frontend_status.stdout }}): http://localhost:{{ frontend_port }}"
+          - " MySQL:   banco '{{ db_name }}', user '{{ db_user }}'"
+          - "======================================================"
+
+  # ── Handlers ─────────────────────────────────────────────
+  handlers:
+    - name: Recarregar systemd
+      ansible.builtin.systemd:
+        daemon_reload: true

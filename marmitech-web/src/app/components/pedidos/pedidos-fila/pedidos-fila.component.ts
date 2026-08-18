@@ -42,6 +42,14 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
   private pedidoService = inject(PedidoService);
   private refreshSubscription!: Subscription;
 
+  private allowedTransitions: { [key: string]: string[] } = {
+    'FILA': ['PREPARANDO', 'CANCELADO'],
+    'PREPARANDO': ['FINALIZADO'],
+    'FINALIZADO': ['ENTREGUE'],
+    'ENTREGUE': [],
+    'CANCELADO': []
+  };
+
   ngOnInit(): void {
     this.carregarPedidos();
     // Atualiza a lista a cada 30 segundos
@@ -85,41 +93,59 @@ export class PedidosFilaComponent implements OnInit, OnDestroy {
     return (agora - dataCancelamento) < tresMinutos;
   }
 
-  atualizarStatus(pedido: PedidoResponseDTO, novoStatus: string): void {
-    // Garante que o novoStatus é valido
-    const statusValido = Object.values(this.statusPedido).includes(novoStatus as StatusPedidoEnum);
+  private obterProximosStatusPermitidos(currentStatus: string): string[] {
+    return this.allowedTransitions[currentStatus] || [];
+  }
 
-    if (!statusValido) {
-      Swal.fire('Erro', 'Status inválido selecionado.', 'error');
+  transicaoPermitida(currentStatus: string, targetStatus: string): boolean {
+    return this.obterProximosStatusPermitidos(currentStatus).includes(targetStatus);
+  }
+
+  atualizarStatus(pedido: PedidoResponseDTO, novoStatus: string): void {
+    if (!this.transicaoPermitida(pedido.status, novoStatus)) {
+      Swal.fire('Erro', 'Transição de status não permitida.', 'error');
       return;
     }
 
-    // Cria um objeto Pedido para enviar na atualização
-    // O backend irá receber isto e o PedidoService irá atualizar o status
+    // Cria um objeto limpo para atualização do status
     const pedidoParaAtualizar: any = {
-      ...pedido, // Envia o pedido todo
-      status: novoStatus // garante que o status novo está definido
+      id: pedido.id,
+      status: novoStatus
     };
 
-    this.pedidoService.update(pedidoParaAtualizar).subscribe(
-      () => {
+    this.pedidoService.update(pedidoParaAtualizar).subscribe({
+      next: () => {
         pedido.status = novoStatus;
         // Se o status for 'ENTREGUE' ou 'CANCELADO', remove da fila após 15s
         if (novoStatus === this.statusPedido.ENTREGUE || novoStatus === this.statusPedido.CANCELADO) {
-          Swal.fire('Atualizado!', `Pedido ${pedido.id} marcado como ${novoStatus}.`, 'success');
+          Swal.fire('Atualizado!', `Pedido #${pedido.id} marcado como ${novoStatus}.`, 'success');
           setTimeout(() => {
             this.pedidos = this.pedidos.filter(p => p.id !== pedido.id);
           }, 15000);
         } else {
-          Swal.fire('Atualizado!', `Status do pedido ${pedido.id} atualizado.`, 'success');
+          Swal.fire('Atualizado!', `Status do pedido #${pedido.id} atualizado.`, 'success');
         }
       },
-      (error) => {
+      error: (error) => {
         Swal.fire('Erro', 'Não foi possível atualizar o status do pedido.', 'error');
         console.error('Erro ao atualizar status', error);
-        // Recarrega os pedidos em caso de erro para re-sincronizar
         this.carregarPedidos();
       }
-    );
+    });
+  }
+
+  cancelarPedido(pedido: PedidoResponseDTO): void {
+    Swal.fire({
+      title: 'Cancelar pedido?',
+      text: `Tem certeza que deseja cancelar o pedido #${pedido.id}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, cancelar',
+      cancelButtonText: 'Voltar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.atualizarStatus(pedido, 'CANCELADO');
+      }
+    });
   }
 }

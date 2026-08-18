@@ -26,15 +26,27 @@ export class KeycloakService {
   }
 
   getUserRoles(): string[] {
-    return ['ADMIN'];
+    const cargo = this.getUserCargo();
+    return [cargo];
   }
 
   hasRole(role: string): boolean {
-    return true;
+    const cargo = this.getUserCargo();
+    if (cargo === 'ADMIN') return true;
+    return cargo === role;
   }
 
   getUsername(): string | undefined {
-    return localStorage.getItem('user') || 'usuario_local';
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.nome || user.email || userStr;
+      } catch (e) {
+        return userStr;
+      }
+    }
+    return 'usuario_local';
   }
 
   isAuthenticated(): boolean {
@@ -42,10 +54,19 @@ export class KeycloakService {
   }
 
   getUserCargo(): string {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.cargo || 'ADMIN';
+      } catch (e) {
+        return 'ADMIN';
+      }
+    }
     return 'ADMIN';
   }
 
   getUsuarioCargo(): string {
-    return 'ADMIN';
+    return this.getUserCargo();
   }
 }

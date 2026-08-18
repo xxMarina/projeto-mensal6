@@ -1,0 +1,31 @@
+# =============================================================
+#  group_vars/marmitech_vm.yml
+#  Todas as variáveis configuráveis do projeto Marmitech.
+#  Altere aqui sem tocar no playbook.
+# =============================================================
+
+# ── Aplicação ────────────────────────────────────────────────
+app_name:       "marmitech"
+backend_port:   8080
+frontend_port:  4200
+
+# ── Banco de dados ───────────────────────────────────────────
+db_name:        "marmitech_db"
+db_user:        "marmitech_user"
+db_password:    "marmitech_pass" 
+db_root_password: "root_pass"
+
+# ── Java / Maven ─────────────────────────────────────────────
+java_version:   "17"               # JDK instalado na VM
+maven_version:  "3.9.6"
+
+# ── Node / Angular ───────────────────────────────────────────
+node_version:   "20"               # via NodeSource LTS
+
+# ── Diretórios dentro da VM ──────────────────────────────────
+app_dir:        "/opt/marmitech"
+backend_dir:    "{{ app_dir }}/backend"
+frontend_dir:   "{{ app_dir }}/frontend"
+
+# ── Origem do código (pasta compartilhada pelo Vagrant) ──────
+src_root:       "/vagrant_src"     # montado pelo Vagrantfile

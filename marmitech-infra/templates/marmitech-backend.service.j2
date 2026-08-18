@@ -1,0 +1,23 @@
+# =============================================================
+#  Serviço systemd Backend Marmitech (Spring Boot)
+# =============================================================
+
+[Unit]
+Description=Marmitech Backend (Spring Boot)
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=marmitech
+WorkingDirectory={{ backend_dir }}
+ExecStart=/usr/bin/java -jar {{ backend_dir }}/app.jar \
+          --server.port={{ backend_port }}
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=marmitech-backend
+
+[Install]
+WantedBy=multi-user.target
