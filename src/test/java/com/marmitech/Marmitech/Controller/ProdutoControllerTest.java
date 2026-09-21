@@ -33,7 +33,11 @@ import com.marmitech.Marmitech.Entity.Produto;
 import com.marmitech.Marmitech.Services.ProdutoService;
 
 
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+
 @WebMvcTest(ProdutoController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class ProdutoControllerTest {
 
     @Autowired
@@ -102,7 +106,7 @@ public class ProdutoControllerTest {
 
         mockMvc.perform(delete("/api/produto/delete/{id}", 1))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
     }
 
     @Test

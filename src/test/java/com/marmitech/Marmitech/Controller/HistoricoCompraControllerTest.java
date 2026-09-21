@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -25,6 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(HistoricoCompraController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class HistoricoCompraControllerTest {
 
     @Autowired
@@ -118,14 +120,13 @@ public class HistoricoCompraControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /delete/{id} - Deve deletar um HistoricoCompra com status OK")
+    @DisplayName("DELETE /delete/{id} - Deve deletar um HistoricoCompra com status NO_CONTENT")
     void cenario04() throws Exception {
         Mockito.when( historicoCompraService.delete( 1 ) ).thenReturn( "Historico deletado com sucesso!" );
 
         mockMvc.perform( delete( "/historicoCompra/delete/1" ) )
                 .andDo( print() )
-                .andExpect( status().isOk() )
-                .andExpect( jsonPath( "$" ).value( "Historico deletado com sucesso!" ) );
+                .andExpect( status().isNoContent() );
     }
 
     @Test

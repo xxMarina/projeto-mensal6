@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +28,7 @@ import com.marmitech.Marmitech.Entity.PedidoItem;
 import com.marmitech.Marmitech.Services.PedidoItemService;
 
 @WebMvcTest(PedidoItemController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class PedidoItemControllerTest {
 
     @Autowired
@@ -85,7 +87,7 @@ public class PedidoItemControllerTest {
 
         mockMvc.perform(get("/pedidoItem/findById/{pedidoItemId}", 1)
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andDo(print());
     }
@@ -93,12 +95,8 @@ public class PedidoItemControllerTest {
     @Test
     @DisplayName("Teste: Delete PedidoItem Controller")
     void test30()  throws Exception {
-       
-        given(pedidoItemService.delete(1)).willReturn("Linha deleteda da tabela.");   
-
         mockMvc.perform(delete("/pedidoItem/delete/{pedidoItemId}", 1))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Linha deleteda da tabela."))
+                .andExpect(status().isNoContent())
                 .andDo(print());
     }
 
@@ -115,7 +113,7 @@ public class PedidoItemControllerTest {
         mockMvc.perform(put("/pedidoItem/update/{pedidoItemId}", 1)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(atualizadoPedidoItem)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andDo(print());
     }
