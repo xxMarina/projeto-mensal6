@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: marmitech-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: marmitech_db
+      MYSQL_USER: marmitech_user
+      MYSQL_PASSWORD: marmitech_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "marmitech_user", "-pmarmitech_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marmitech-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/marmitech_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=America/Sao_Paulo
+      SPRING_DATASOURCE_USERNAME: marmitech_user
+      SPRING_DATASOURCE_PASSWORD: marmitech_pass
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./marmitech-web
+      dockerfile: Dockerfile
+    container_name: marmitech-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

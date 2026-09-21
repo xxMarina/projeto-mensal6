@@ -58,12 +58,12 @@ export class KeycloakService {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        return user.cargo || 'ADMIN';
+        return user.cargo || '';
       } catch (e) {
-        return 'ADMIN';
+        return '';
       }
     }
-    return 'ADMIN';
+    return '';
   }
 
   getUsuarioCargo(): string {

@@ -1,6 +1,7 @@
 # 🍽️ Sistema de Gerenciamento de Pedidos - Marmitech
 
 ## 📋 Descrição do Projeto
+
 Este projeto foi desenvolvido como parte da disciplina de Engenharia de Software no 4º período.  
 O sistema tem como objetivo gerenciar pedidos realizados em um **cardápio online** de um restaurante, integrando uma **fila de atendimento** para organização e priorização das entregas.
 
@@ -9,6 +10,7 @@ A aplicação foi construída utilizando **Java**, **Spring Boot** e **MySQL** c
 ---
 
 ## 🎯 Objetivos
+
 - Proporcionar uma experiência ágil e intuitiva para clientes realizarem pedidos via cardápio online.
 - Automatizar a gestão da fila de atendimento para melhorar o fluxo de trabalho da cozinha.
 - Fornecer relatórios e histórico de pedidos para fins gerenciais.
@@ -16,6 +18,7 @@ A aplicação foi construída utilizando **Java**, **Spring Boot** e **MySQL** c
 ---
 
 ## 🛠️ Tecnologias Utilizadas
+
 - **Java 17** (linguagem principal)
 - **Spring Boot** (framework backend)
 - **MySQL** (banco de dados relacional)
@@ -27,6 +30,7 @@ A aplicação foi construída utilizando **Java**, **Spring Boot** e **MySQL** c
 ---
 
 ## 📚 Funcionalidades
+
 - Cadastro de clientes.
 - Cadastro e gerenciamento de produtos (cardápio).
 - Registro de pedidos com múltiplos itens.
@@ -45,7 +49,3 @@ José
 Marina
 
 Jhoran Ygor
-
-📄Agradecimentos
-
-ChatGPT4 (Por este README)

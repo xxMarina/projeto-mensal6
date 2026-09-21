@@ -1,6 +1,7 @@
 package com.marmitech.Marmitech.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,6 +27,7 @@ public class Usuario {
 
     @NotNull
     @NotBlank(message = "senha não pode ser null ou vazio")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
 
     @NotNull

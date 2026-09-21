@@ -32,3 +32,12 @@ build/
 ### VS Code ###
 .vscode/
 src/main/resources/application.properties
+
+### Vagrant & VirtualBox ###
+.vagrant/
+**/.vagrant/
+*.log
+
+### Node & Builds ###
+node_modules/
+dist/
