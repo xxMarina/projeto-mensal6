@@ -1,8 +1,12 @@
 package com.marmitech.Marmitech.Controller;
 
+import com.marmitech.Marmitech.Config.JwtService;
+import com.marmitech.Marmitech.DTO.RequestDTO.LoginRequestDTO;
 import com.marmitech.Marmitech.DTO.RequestDTO.UsuarioRequestDTO;
+import com.marmitech.Marmitech.DTO.ResponseDTO.LoginResponseDTO;
 import com.marmitech.Marmitech.DTO.ResponseDTO.UsuarioResponseDTO;
 import com.marmitech.Marmitech.Entity.Usuario;
+import com.marmitech.Marmitech.Mapper.ResponseMapper.UsuarioResponseMapper;
 import com.marmitech.Marmitech.Services.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,7 @@ import java.util.List;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final JwtService jwtService;
 
     @PostMapping("/save")
     public ResponseEntity<UsuarioResponseDTO> save(@RequestBody @Valid UsuarioRequestDTO dto) {
@@ -62,10 +67,13 @@ public class UsuarioController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Usuario loginData) {
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginData) {
         try {
-            var usuario = usuarioService.login(loginData.getEmail(), loginData.getSenha());
-            return ResponseEntity.ok(usuario);
+            var usuario = usuarioService.login(loginData.email(), loginData.senha());
+            String token = jwtService.generateToken(usuario.getEmail(), usuario.getNome(), usuario.getCargo());
+            var usuarioDto = UsuarioResponseMapper.toDto(usuario);
+            var response = new LoginResponseDTO(token, "Bearer", usuarioDto);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }

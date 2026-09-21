@@ -29,8 +29,10 @@ export class LoginComponent {
 
     this.authService.fazerLogin(this.loginData.email, this.loginData.senha).subscribe({
       next: (res) => {
-        localStorage.setItem('user', JSON.stringify(res));
-        localStorage.setItem('token', 'session_token_' + Date.now());
+        const token = res.token || ('session_token_' + Date.now());
+        const user = res.usuario || res;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
         Swal.fire({
           title: 'Bem-vindo!',
           text: 'Login realizado com sucesso.',
