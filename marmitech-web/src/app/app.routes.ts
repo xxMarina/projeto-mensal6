@@ -13,8 +13,8 @@ import { PedidosItemlistComponent } from './components/pedidosItem/pedidos-iteml
 
 import { PedidosItemdetailsComponent } from './components/pedidosItem/pedidos-itemdetails/pedidos-itemdetails.component';
 
-import { HistoricolistComponent } from './components/hisotrico/historicolist/historicolist.component';
-import { HistoricodetailsComponent } from './components/hisotrico/historicodetails/historicodetails.component';
+import { HistoricolistComponent } from './components/historico/historicolist/historicolist.component';
+import { HistoricodetailsComponent } from './components/historico/historicodetails/historicodetails.component';
 
 
 import { ClientelistComponent } from './components/cliente/clientelist/clientelist.component';
