@@ -1,4 +1,4 @@
-ADR-003 - Localização do banco de dados
+# ADR-003 - Localização do banco de dados
 
 No contexto da arquitetura de persistência de dados da aplicação,
 diante da necessidade de garantir rotinas de backup eficientes, atualizações de segurança e alta disponibilidade,
