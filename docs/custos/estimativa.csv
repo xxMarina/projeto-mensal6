@@ -1,0 +1,9 @@
+service_display_name,name,quantity,region,service_id,sku,total_price_BRL_Mensal,total_price_BRL_25h,notes
+Firebase Hosting,Frontend Web Hosting (Angular SPA),1 Site (10 GB/mês transferência),global,firebase-hosting,spark-plan-free,0.00,0.00,Gratuito (Spark Plan - 10 GB/mês transferência e SSL automático inclusos)
+Artifact Registry,Artifact Registry Storage,5.0 GiB,global,149C-F9EC-3994,8502-299A-ABAF,2.64,2.64,Armazenamento de imagens OCI/Docker
+Secret Manager,Secret access and version storage,6.0,global,EE82-7A5E-871C,7756-ADEF-84F4,0.00,0.00,Dentro do Free Tier mensal
+Compute Engine,e2-micro VM Privada (CPU + RAM + 10GB Boot Disk),1 VM,southamerica-east1,6F81-5844-456A,0442-C445-D66A,61.12,5.53,730h no Cenário A / 25h no Cenário B
+Cloud Run,Backend API (Spring Boot 3 - Private Backend Service),1 vCPU / 512 MiB,southamerica-east1,152E-C115-5142,085C-A237-027A,2.55,0.43,Escalável sob demanda
+Cloud SQL,MySQL Enterprise (db-f1-micro + 10GB HDD),1 Instância,southamerica-east1,9662-B51E-5089,24AA-93BE-AE82,76.45,2.63,Banco de dados relacional
+Cloud NAT,NAT Gateway Uptime + Data Processing + IP,1 Gateway,global,E505-1604-58F8,32E2-4EFC-EF9F,27.98,27.98,Saída controlada para internet
+TOTAL GERAL,,,,,,170.74,39.21,Valores em BRL (sujeitos a pequenas variações da cotação USD/BRL)
