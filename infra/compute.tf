@@ -123,10 +123,6 @@ resource "google_cloud_run_v2_service" "app" {
     service_account = google_service_account.cloud_run_sa.email
     labels          = var.labels
 
-    scaling {
-      min_instance_count = 0
-    }
-
     vpc_access {
       connector = google_vpc_access_connector.connector.id
       egress    = "PRIVATE_RANGES_ONLY"
@@ -176,6 +172,10 @@ resource "google_cloud_run_v2_service" "app" {
         }
       }
     }
+  }
+
+  lifecycle {
+    ignore_changes = [scaling]
   }
 
   depends_on = [
