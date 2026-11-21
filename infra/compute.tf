@@ -6,7 +6,7 @@ resource "google_compute_instance" "vm_privada" {
   labels       = var.labels
 
   boot_disk {
-    kms_key_self_link = google_kms_crypto_key.disk_key.id
+    kms_key_self_link = data.google_kms_crypto_key.disk_key.id
 
     initialize_params {
       image  = var.vm_image
@@ -51,13 +51,16 @@ resource "google_compute_instance" "vm_privada" {
 }
 
 # Banco de Dados Gerenciado (Cloud SQL MySQL 8.0 + Política Mínima B6)
+resource "random_id" "db_name_suffix" {
+  byte_length = 4
+}
 
 resource "google_sql_database_instance" "mysql" {
-  name                = "marmitech-mysql"
+  name                = "marmitech-mysql-${random_id.db_name_suffix.hex}"
   database_version    = "MYSQL_8_0"
   region              = var.region
   deletion_protection = false
-  encryption_key_name = google_kms_crypto_key.disk_key.id
+  encryption_key_name = data.google_kms_crypto_key.disk_key.id
 
   depends_on = [
     google_service_networking_connection.private_vpc_connection,
@@ -100,8 +103,52 @@ resource "google_sql_user" "app_user" {
   password = var.db_password
 }
 
-# Artifact Registry
+# Exportação automática no destroy e restauração automática no apply (GCS persistente)
+resource "google_storage_bucket_iam_member" "sql_backup_bucket_access" {
+  bucket = "marmitech-sql-backups-515322"
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_sql_database_instance.mysql.service_account_email_address}"
+}
 
+resource "terraform_data" "sql_backup_sync" {
+  input = {
+    instance_name = google_sql_database_instance.mysql.name
+    db_name       = google_sql_database.app_db.name
+    project_id    = var.project_id
+    bucket        = "marmitech-sql-backups-515322"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      if gcloud storage ls "gs://${self.input.bucket}/marmitech-latest.sql" --project="${self.input.project_id}" >/dev/null 2>&1; then
+        gcloud sql import sql "${self.input.instance_name}" "gs://${self.input.bucket}/marmitech-latest.sql" \
+          --database="${self.input.db_name}" \
+          --project="${self.input.project_id}" \
+          --quiet
+      fi
+    EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set -eu
+      gcloud sql export sql "${self.input.instance_name}" "gs://${self.input.bucket}/marmitech-latest.sql" \
+        --database="${self.input.db_name}" \
+        --project="${self.input.project_id}" \
+        --quiet
+    EOT
+  }
+
+  depends_on = [
+    google_sql_database.app_db,
+    google_sql_user.app_user,
+    google_storage_bucket_iam_member.sql_backup_bucket_access,
+  ]
+}
+
+# Artifact Registry
 resource "google_artifact_registry_repository" "repo" {
   location      = var.region
   repository_id = "marmitech-repo"
@@ -111,8 +158,25 @@ resource "google_artifact_registry_repository" "repo" {
   depends_on = [google_project_service.enabled_apis]
 }
 
-# Backend API Serverless (Cloud Run v2)
+resource "terraform_data" "build_and_push_api" {
+  triggers_replace = [
+    google_artifact_registry_repository.repo.id,
+    var.cloud_run_image_tag,
+  ]
 
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      gcloud auth configure-docker ${var.region}-docker.pkg.dev --quiet
+      docker build -t ${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.repository_id}/marmitech-api:${var.cloud_run_image_tag} ${path.module}/..
+      docker push ${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.repo.repository_id}/marmitech-api:${var.cloud_run_image_tag}
+    EOT
+  }
+
+  depends_on = [google_artifact_registry_repository.repo]
+}
+
+# Backend API Serverless (Cloud Run v2)
 resource "google_cloud_run_v2_service" "app" {
   name                = "marmitech-api"
   location            = var.region
@@ -122,10 +186,6 @@ resource "google_cloud_run_v2_service" "app" {
   template {
     service_account = google_service_account.cloud_run_sa.email
     labels          = var.labels
-
-    scaling {
-      min_instance_count = 0
-    }
 
     vpc_access {
       connector = google_vpc_access_connector.connector.id
@@ -178,7 +238,12 @@ resource "google_cloud_run_v2_service" "app" {
     }
   }
 
+  lifecycle {
+    ignore_changes = [scaling]
+  }
+
   depends_on = [
+    terraform_data.build_and_push_api,
     google_project_iam_member.run_cloudsql_client,
     google_secret_manager_secret_iam_member.run_db_password_access,
     google_secret_manager_secret_iam_member.run_jwt_secret_access,
@@ -199,7 +264,6 @@ resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
 # Nota: O site e os arquivos estáticos + rewrites de API do Angular são publicados
 # via CI/CD (marmitech-web/firebase.json + GitHub Actions) para não sobrescrever
 # o deploy de produção a cada execução do Terraform.
-
 resource "google_firebase_project" "default" {
   provider = google-beta
   project  = var.project_id
