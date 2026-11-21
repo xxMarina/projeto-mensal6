@@ -1,0 +1,30 @@
+# Exemplo de arquivo de variáveis:
+# Copie para terraform.tfvars e preencha os valores não sensíveis.
+# Para os segredos (db_password e jwt_secret), exporte variáveis de ambiente:
+#   export TF_VAR_db_password="sua-senha-forte-aqui"
+#   export TF_VAR_jwt_secret="sua-chave-jwt-forte-aqui"
+
+project_id       = "seu-projeto-gcp-id"
+region           = "southamerica-east1"
+zone             = "southamerica-east1-a"
+firebase_site_id = "marmitech-app-exemplo"
+
+vpc_name              = "vpc-marmitech"
+vpc_cidr              = "10.20.0.0/16"
+subnet_public_cidr    = "10.20.1.0/24"
+subnet_private_cidr   = "10.20.10.0/24"
+subnet_connector_cidr = "10.20.100.0/28"
+
+vm_machine_type = "e2-micro"
+vm_private_ip   = "10.20.10.15"
+db_tier         = "db-f1-micro"
+
+iap_cidr       = "35.235.240.0/20"
+ssh_user       = "marmitech"
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExemploChavePublicaAqui marmitech-grupo"
+
+labels = {
+  projeto  = "marmitech"
+  grupo    = "marmitech"
+  ambiente = "producao"
+}
