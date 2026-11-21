@@ -84,22 +84,18 @@ resource "google_compute_firewall" "deny_all_egress" {
 
 # Criptografia em Repouso (Cloud KMS - Controle S6)
 
-resource "google_kms_key_ring" "keyring" {
+data "google_kms_key_ring" "keyring" {
   name     = "marmitech-keyring"
   location = var.region
-
-  depends_on = [google_project_service.enabled_apis]
 }
 
-resource "google_kms_crypto_key" "disk_key" {
-  name            = "marmitech-disk-key"
-  key_ring        = google_kms_key_ring.keyring.id
-  rotation_period = "7776000s"
-  labels          = var.labels
+data "google_kms_crypto_key" "disk_key" {
+  name     = "marmitech-disk-key"
+  key_ring = data.google_kms_key_ring.keyring.id
 }
 
 resource "google_kms_crypto_key_iam_member" "compute_kms" {
-  crypto_key_id = google_kms_crypto_key.disk_key.id
+  crypto_key_id = data.google_kms_crypto_key.disk_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:service-${data.google_project.current.number}@compute-system.iam.gserviceaccount.com"
 }
@@ -113,7 +109,7 @@ resource "google_project_service_identity" "sqladmin_sa" {
 }
 
 resource "google_kms_crypto_key_iam_member" "sql_kms" {
-  crypto_key_id = google_kms_crypto_key.disk_key.id
+  crypto_key_id = data.google_kms_crypto_key.disk_key.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
   member        = "serviceAccount:${google_project_service_identity.sqladmin_sa.email}"
 }
