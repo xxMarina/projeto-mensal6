@@ -41,3 +41,29 @@ src/main/resources/application.properties
 ### Node & Builds ###
 node_modules/
 dist/
+
+### Firebase ###
+**/.firebase/
+
+### Terraform ###
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+### Chaves e Credenciais ###
+*.pem
+*.key
+id_rsa
+id_ed25519
+*credentials*.json
+*-key.json
