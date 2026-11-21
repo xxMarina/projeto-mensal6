@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "marmitech-pi-2026",
+    "site": "marmitech-pi-2026-app",
     "public": "dist/marmitech-web/browser",
     "ignore": [
       "firebase.json",
