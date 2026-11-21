@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - fix/firebase-site-id
     paths:
       - "marmitech-web/**"
       - ".github/workflows/deploy-firebase.yml"
@@ -16,6 +17,10 @@ on:
       - "marmitech-web/**"
       - ".github/workflows/deploy-firebase.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   build-and-deploy:
@@ -43,7 +48,6 @@ jobs:
         run: npm run build -- --configuration production
 
       - name: Deploy no Firebase Hosting
-        if: github.event_name != 'pull_request'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -51,3 +55,9 @@ jobs:
           channelId: live
           projectId: projeto-integrador-515322
           entryPoint: marmitech-web
+
+      - name: Exibir URL do Firebase Hosting
+        run: |
+          echo "### Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "Acesse: https://projeto-integrador-515322.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "URL da aplicação: https://projeto-integrador-515322.web.app"
