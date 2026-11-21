@@ -51,3 +51,9 @@ jobs:
           channelId: live
           projectId: projeto-integrador-515322
           entryPoint: marmitech-web
+
+      - name: Exibir URL do Firebase Hosting
+        run: |
+          echo "### Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "Acesse: https://marmitech-pi-2026-app.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "URL da aplicação: https://marmitech-pi-2026-app.web.app"
