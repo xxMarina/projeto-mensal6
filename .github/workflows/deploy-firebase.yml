@@ -18,6 +18,10 @@ on:
       - ".github/workflows/deploy-firebase.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -55,5 +59,5 @@ jobs:
       - name: Exibir URL do Firebase Hosting
         run: |
           echo "### Deploy concluído" >> $GITHUB_STEP_SUMMARY
-          echo "Acesse: https://marmitech-pi-2026-app.web.app" >> $GITHUB_STEP_SUMMARY
-          echo "URL da aplicação: https://marmitech-pi-2026-app.web.app"
+          echo "Acesse: https://projeto-integrador-515322.web.app" >> $GITHUB_STEP_SUMMARY
+          echo "URL da aplicação: https://projeto-integrador-515322.web.app"

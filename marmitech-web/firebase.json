@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "marmitech-pi-2026-app",
+    "site": "projeto-integrador-515322",
     "public": "dist/marmitech-web/browser",
     "ignore": [
       "firebase.json",
