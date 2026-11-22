@@ -244,6 +244,7 @@ resource "google_cloud_run_v2_service" "app" {
 
   depends_on = [
     terraform_data.build_and_push_api,
+    terraform_data.sql_backup_sync,
     google_project_iam_member.run_cloudsql_client,
     google_secret_manager_secret_iam_member.run_db_password_access,
     google_secret_manager_secret_iam_member.run_jwt_secret_access,
