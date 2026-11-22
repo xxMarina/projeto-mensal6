@@ -1,5 +1,7 @@
 # ADR-002 - Saída para a internet da sub-rede privada
 
+**Status:** Substituída pelo [ADR-004](004-cloud-nat-subrede-privada.md) na Entrega 2 (adoção obrigatória de Cloud NAT gerenciado).
+
 No contexto de uma arquitetura serverless onde o Cloud Run, atuando como uma API do backend, se comunica com o banco de dados Cloud SQL através de uma VPC própria,
 diante da necessidade de reduzir os custos da infraestrutura,
 decidimos configurar a sub-rede privada com ausência de saída para a internet,

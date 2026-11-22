@@ -1,0 +1,38 @@
+{
+  "hosting": {
+    "site": "projeto-integrador-515322",
+    "public": "dist/marmitech-web/browser",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "marmitech-api",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/historicoCompra/**",
+        "run": {
+          "serviceId": "marmitech-api",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "/pedidoItem/**",
+        "run": {
+          "serviceId": "marmitech-api",
+          "region": "southamerica-east1"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
